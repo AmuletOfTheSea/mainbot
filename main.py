@@ -2,6 +2,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from datetime import datetime
+from keep_alive import keep_alive
+keep_alive()
 
 intents = discord.Intents.default()
 intents.guilds = True
