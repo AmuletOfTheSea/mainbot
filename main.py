@@ -3,10 +3,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from datetime import datetime
-
-# For GitHub secret
-from dotenv import load_dotenv
-load_dotenv()
+from keep_alive import keep_alive  # Make sure this file exists
 
 intents = discord.Intents.default()
 intents.guilds = True
@@ -26,15 +23,10 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
-# Helper function to check if the user has a specific role
 def has_bot_perms_role(interaction: discord.Interaction):
     role_name = "Bot Perms"
-    member = interaction.guild.get_member(interaction.user.id)
-    if member is None:
-        return False
-    return any(role.name == role_name for role in member.roles)
+    return any(role.name == role_name for role in interaction.user.roles)
 
-# /completeorder command
 @bot.tree.command(name="completeorder", description="Complete an order and send a private server link with an optional extra message.")
 @app_commands.describe(
     user="User to ping",
@@ -50,13 +42,9 @@ async def completeorder(interaction: discord.Interaction, user: discord.User, pr
     if extramessage:
         final_message += f"\nExtra Message: {extramessage}"
 
-    try:
-        await user.send(final_message)
-        await interaction.response.send_message(f"Order message sent to {user.mention} in DMs.", ephemeral=True)
-    except discord.Forbidden:
-        await interaction.response.send_message(f"Could not send DM to {user.mention}.", ephemeral=True)
+    await user.send(final_message)
+    await interaction.response.send_message(f"Order message sent to {user.mention} in DMs.", ephemeral=True)
 
-# /addorder command
 @bot.tree.command(name="addorder", description="Add a new order for a user.")
 @app_commands.describe(
     user="User to ping",
@@ -85,9 +73,11 @@ async def addorder(interaction: discord.Interaction, user: discord.User, ordered
 
     await interaction.response.send_message(f"Order added for {user.mention}.", ephemeral=True)
 
-# /delorder command
 @bot.tree.command(name="delorder", description="Delete an existing order for a user.")
-@app_commands.describe(user="User to delete the order for", order_index="Order index to delete")
+@app_commands.describe(
+    user="User to delete the order for",
+    order_index="Order index to delete"
+)
 async def delorder(interaction: discord.Interaction, user: discord.User, order_index: int):
     if not has_bot_perms_role(interaction):
         await interaction.response.send_message("You don't have permission to use this command.", ephemeral=True)
@@ -104,7 +94,6 @@ async def delorder(interaction: discord.Interaction, user: discord.User, order_i
     orders[user.id].pop(order_index - 1)
     await interaction.response.send_message(f"Order {order_index} for {user.mention} has been deleted.", ephemeral=True)
 
-# /orderlog command
 @bot.tree.command(name="orderlog", description="View all orders for a user.")
 @app_commands.describe(user="User to view the orders for")
 async def orderlog(interaction: discord.Interaction, user: discord.User):
@@ -122,8 +111,6 @@ async def orderlog(interaction: discord.Interaction, user: discord.User):
     )
     await interaction.response.send_message(f"Orders for {user.mention}:\n{order_list}", ephemeral=True)
 
-# Run the bot using the secret
-bot_token = os.getenv("DISCORD_BOT_TOKEN")
-if not bot_token:
-    raise ValueError("DISCORD_BOT_TOKEN not set in environment.")
-bot.run(bot_token)
+# Start the bot
+keep_alive()
+bot.run(os.getenv("DISCORD_BOT_TOKEN"))
