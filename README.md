@@ -1,2 +1,0 @@
-# mainbot
-me
